@@ -21,7 +21,6 @@ class TestsPerformedController extends Controller
 {
     public function index()
     {
-        
         return view('admin.TestPerformed.index');
     }
 
@@ -45,16 +44,15 @@ class TestsPerformedController extends Controller
         // Total records
         $totalRecords = TestPerformed::select('count(*) as allcount')->count();
         $totalRecordswithFilter = TestPerformed::join('patients', 'test_performeds.patient_id', '=', 'patients.id')
-        ->join('available_tests', 'test_performeds.available_test_id', '=', 'available_tests.id')
-        ->join('categories', 'available_tests.category_id', '=', 'categories.id')
-        ->select('count(*) as allcount')
-        ->where('patients.Pname', 'like', '%' . $searchValue . '%')
-        ->orWhere('available_tests.name', 'like', '%' . $searchValue . '%')
-        ->orWhere('patients.id', 'like', '%' . $searchValue . '%')
-        ->count();
+            ->join('available_tests', 'test_performeds.available_test_id', '=', 'available_tests.id')
+            ->join('categories', 'available_tests.category_id', '=', 'categories.id')
+            ->select('count(*) as allcount')
+            ->where('patients.Pname', 'like', '%' . $searchValue . '%')
+            ->orWhere('available_tests.name', 'like', '%' . $searchValue . '%')
+            ->orWhere('patients.id', 'like', '%' . $searchValue . '%')
+            ->count();
 
         // Get records, also we have included search filter as well
-
         $records = TestPerformed::join('patients', 'test_performeds.patient_id', '=', 'patients.id')
             ->join('available_tests', 'test_performeds.available_test_id', '=', 'available_tests.id')
             ->join('categories', 'available_tests.category_id', '=', 'categories.id')
@@ -70,40 +68,42 @@ class TestsPerformedController extends Controller
             ->take($rowperpage)
             ->get();
 
-            //return $records;
+        //return $records;
 
         $data_arr = array();
 
-        function actionView($id) {
-            $str = '<a class="btn btn-xs btn-primary mr-1" href="'. route("test-performed-show", $id) .'">Report</a>';
-            
-            $str = $str . '<a class="btn btn-xs btn-info" href="'. route("test-performed-edit", $id) .'">Edit</a>';
-                     
-            if(Auth::user()->role == 'admin'){
-            $str = $str.'
-            <form  method="POST" action="'. route("performed-test-delete", [$id]) .'" style="display: inline-block;">
+        function actionView($id)
+        {
+            $str = '<a class="btn btn-xs btn-primary mr-1" href="' . route("test-performed-show", $id) . '">Report</a>';
+
+            $str = $str . '<a class="btn btn-xs btn-info" href="' . route("test-performed-edit", $id) . '">Edit</a>';
+
+            if (Auth::user()->role == 'admin') {
+                $str = $str . '
+            <form  method="POST" action="' . route("performed-test-delete", [$id]) . '" style="display: inline-block;">
                 <input type="hidden" name="_method" value="DELETE">
-                <input type="hidden" name="_token" value="'. csrf_token() .'">
-                <input type="submit" class="btn btn-xs btn-danger show_confirm" value="'. trans('global.delete') .'">
+                <input type="hidden" name="_token" value="' . csrf_token() . '">
+                <input type="submit" class="btn btn-xs btn-danger show_confirm" value="' . trans('global.delete') . '">
             </form>
             ';
             }
             return $str;
         }
 
-        function statusView($id, $status, $urgent, $standard, $type, $timestamp) {
-            if($type === "urgent") 
+        function statusView($id, $status, $urgent, $standard, $type, $timestamp)
+        {
+            if ($type === "urgent")
                 $timehour = $urgent;
-            elseif($type === "standard")
+            elseif ($type === "standard")
                 $timehour = $standard;
 
-            if ($status =='verified')
+            if ($status == 'verified')
                 $str = '<button class="btn btn-xs btn-success">Verified</button>';
             elseif ((\Carbon\Carbon::now()->timestamp > $timehour + $timestamp) && $status == "process")
                 $str = '<button class="btn btn-xs btn-danger">Delayed</button>';
-            elseif ( $status == "process" )
+            elseif ($status == "process")
                 $str = '<button class="btn btn-xs btn-info">In Process</button>';
-            elseif ( $status == "cancelled" )
+            elseif ($status == "cancelled")
                 $str = '<button class="btn btn-xs btn-info">Cancelled</button>';
             else
                 $str = '<button class="btn btn-xs btn-danger">No status</button>';
@@ -111,8 +111,9 @@ class TestsPerformedController extends Controller
             return $str;
         }
 
-        function smsView($sms) {
-            
+        function smsView($sms)
+        {
+
             if ($sms != null)
                 $str = '<button class="btn btn-xs btn-success">Sent</button>';
             else
@@ -121,33 +122,30 @@ class TestsPerformedController extends Controller
         }
 
         foreach ($records as $record) {
-            
             $data_arr[] = array(
                 "id" => $record->id,
                 "Name" => $record->name,
                 "Cname" => $record->Cname,
-                "patient_id" => $record->Pname ." (". $record->Pid.")",
+                "patient_id" => $record->Pname . " (" . $record->Pid . ")",
                 "Specimen" => $record->specimen,
                 "referred" => $record->referred,
-                "created_at" =>  $record->created_at->format('d-m-Y H:i:s'),
+                "created_at" => $record->created_at->format('d-m-Y H:i:s'),
                 "Status" => statusView($record->id, $record->status, $record->urgent_timehour, $record->stander_timehour, $record->type, $record->created_at->timestamp),
                 "sms" => smsView($record->sms),
                 "Action" => actionView($record->id),
             );
         }
-
         $response = array(
             "draw" => intval($draw),
             "iTotalRecords" => $totalRecords,
             "iTotalDisplayRecords" => $totalRecordswithFilter,
             "aaData" => $data_arr,
         );
-
         echo json_encode($response);
     }
 
     public function create()
-    { 
+    {
         $patientNames = Patient::orderBy('created_at', 'DESC')->with('category')->get();
 
         $availableTests = AvailableTest::get(['name', 'testCode', 'id']);
@@ -166,11 +164,11 @@ class TestsPerformedController extends Controller
 
         //                dd($request->all());
         $specimen = "";
-        if(!$request->available_test_ids)
-          return back()->with('success','Test field is required');
+        if (!$request->available_test_ids)
+            return back()->with('success', 'Test field is required');
 
         $num_of_tests = count($request->available_test_ids);
-        $each_test_concession = (int) $request->concession / (int) $num_of_tests;
+        $each_test_concession = (int)$request->concession / (int)$num_of_tests;
 
         foreach ($request->available_test_ids as $key => $available_test_id) {
             //this is to count that how much tests of same type are performed so values can be accessed by index
@@ -224,7 +222,7 @@ class TestsPerformedController extends Controller
             } else {
                 $test_performed->referred = '';
             }
-                $test_performed->status = 'process';
+            $test_performed->status = 'process';
 
             $test_performed->save();
             //dd($test_performed);
@@ -242,28 +240,28 @@ class TestsPerformedController extends Controller
                         // 'value' => $request->$field_name[${"test" . $available_test_id}],
                     ]);
                 }
-                if ($available_test->type==5){
+                if ($available_test->type == 5) {
                     TestperformedWidal::create([
                         "test_performed_id" => $test_performed->id,
-                        "type"=>"test_performed_heading",
-                        "value"=>""
+                        "type" => "test_performed_heading",
+                        "value" => ""
                     ]);
                 }
-                if ($available_test->type==6){
+                if ($available_test->type == 6) {
                     TestperformedWidal::create([
                         "test_performed_id" => $test_performed->id,
-                        "type"=>"test_performed_heading",
-                        "value"=>""
+                        "type" => "test_performed_heading",
+                        "value" => ""
                     ]);
                     TestperformedWidal::create([
                         "test_performed_id" => $test_performed->id,
-                        "type"=>"test_performed_heading2",
-                        "value"=>""
+                        "type" => "test_performed_heading2",
+                        "value" => ""
                     ]);
                     TestperformedWidal::create([
                         "test_performed_id" => $test_performed->id,
-                        "type"=>"test_performed_heading0",
-                        "value"=>""
+                        "type" => "test_performed_heading0",
+                        "value" => ""
                     ]);
                 }
             } elseif ($available_test->type == 2) {
@@ -294,7 +292,7 @@ class TestsPerformedController extends Controller
         $test_performed = TestPerformed::findOrFail($id);
         $available_test = AvailableTest::findorfail($request->available_test_id);
         //$patient = Patient::findorfail($request->patient_id);
-        if ( !$available_test || !$test_performed)
+        if (!$available_test || !$test_performed)
             return abort(503, "Invalid Request");
         //        store
         $test_performed->update([
@@ -332,20 +330,20 @@ class TestsPerformedController extends Controller
                 });
             }
             if (isset($request->heading0))
-            TestperformedWidal::where("test_performed_id",$test_performed->id)->where("type","test_performed_heading0")->update([
-                "value"=>$request->heading0
-            ]);
+                TestperformedWidal::where("test_performed_id", $test_performed->id)->where("type", "test_performed_heading0")->update([
+                    "value" => $request->heading0
+                ]);
 
-//            for test type 5 two tables
+            //            for test type 5 two tables
             if (isset($request->heading))
-            TestperformedWidal::where("test_performed_id",$test_performed->id)->where("type","test_performed_heading")->update([
-                "value"=>$request->heading
-            ]);
+                TestperformedWidal::where("test_performed_id", $test_performed->id)->where("type", "test_performed_heading")->update([
+                    "value" => $request->heading
+                ]);
 
             if (isset($request->heading2))
-            TestperformedWidal::where("test_performed_id",$test_performed->id)->where("type","test_performed_heading2")->update([
-                "value"=>$request->heading2
-            ]);
+                TestperformedWidal::where("test_performed_id", $test_performed->id)->where("type", "test_performed_heading2")->update([
+                    "value" => $request->heading2
+                ]);
         } elseif ($test_performed->availableTest->type == 2) {
             $test_performed->testPerformedEditor->update([
                 "editor" => $request->ckeditor
@@ -366,7 +364,7 @@ class TestsPerformedController extends Controller
                 }
             }
             TestperformedWidal::insert($data);
-//            dd($request->all());
+            //            dd($request->all());
         } elseif ($test_performed->availableTest->type == 4) {
             //dd($request->all());
             $data = [];
@@ -429,7 +427,7 @@ class TestsPerformedController extends Controller
         );
         $test->delete();
         Session::flash('flash_message', 'Task successfully deleted!');
-        
+
         return redirect()->route('tests-performed');
     }
 }

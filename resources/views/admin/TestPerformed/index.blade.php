@@ -117,6 +117,5 @@
 
         
         })
-
     </script>
 @endsection

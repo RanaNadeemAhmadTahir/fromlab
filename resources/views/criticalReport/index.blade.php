@@ -87,6 +87,7 @@
                         </thead>
                         <tbody>
                         @foreach($testPerformeds as $key => $testPerformed)
+                            
                             {{--                            @php $totalFee = $totalFee + $testPerformed->fee; @endphp--}}
                             <tr data-entry-id="{{ $testPerformed->id }}">
                                 <td>
@@ -96,7 +97,7 @@
                                     {{ $testPerformed->Pname ?? '' }} ({{ $testPerformed->patient_id ?? '' }}) {{ \Carbon\Carbon::parse($testPerformed->dob)->diff(\Carbon\Carbon::now())->format('%y year(s)') ?? '' }} {{$testPerformed->gend}}
                                 </td>
                                 <td>
-                                    {{ $testPerformed->report_item_title ?? '' }}
+                                    {{ $testPerformed->test_name ?? '' }} -- {{ $testPerformed->report_item_title ?? '' }}
                                 </td>
                                 <td>
                                     {{ $testPerformed->value ?? '' }}
